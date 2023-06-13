@@ -50,6 +50,30 @@ down: ## Stop docker containers
 	@echo "==> Stopping containers"
 	@$(COMPOSE) down --volumes --remove-orphans
 
+.PHONY: up-ipv6
+up-ipv6: ## Start docker containers
+up-ipv6:
+	@echo "==> Generating encryption files"
+	@cd scylla/certs && ./generate.sh
+	@echo "==> Generating Scylla configuration"
+ifeq ($(SM_SSL_ENABLED),yes)
+	@$(YQ) merge -x scylla/config/scylla.yaml scylla/config/scylla-ssl.yaml > scylla/scylla.yaml
+	@cp scylla/config/cqlshrc-ssl scylla/cqlshrc
+else
+	@cp scylla/config/scylla_ipv6.yaml scylla/scylla_ipv6.yaml
+	@cp scylla/config/cqlshrc scylla/cqlshrc
+endif
+	@echo "==> Starting containers IPV6"
+	mkdir -p $(MINIO_DATA_DIR)
+	@. ./.env && CURRENT_UID=$(CURRENT_UID) CURRENT_GID=$(CURRENT_GID) $(COMPOSE) -f docker-compose-ipv6.yaml up -d
+#	$(COMPOSE) -T --privileged dc1_node_1 sudo bash -c 'echo "fs.aio-max-nr = 1048579" > /etc/sysctl.d/50-scylla.conf'
+#	$(COMPOSE) -T --privileged dc1_node_1 sudo sysctl -p /etc/sysctl.d/50-scylla.conf
+	@echo "==> Waiting for cluster"
+	@until [ 6 -eq $$($(NODETOOL) status | grep -c "UN") ]; do echo "..."; sleep 2; done
+	@./nodes_exec rm /root/.cqlshrc
+	@echo "==> Adding Minio user"
+	./minio/add_user.sh
+
 .PHONY: status
 status: ## Cluster containers status and nodetool status
 	@$(COMPOSE) ps

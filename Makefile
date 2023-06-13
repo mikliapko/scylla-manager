@@ -102,9 +102,9 @@ integration-test:
 # Load Minio config for INTEGRATION_TEST_ARGS
 include testing/.env
 
-INTEGRATION_TEST_ARGS := -cluster 192.168.100.100 \
--managed-cluster 192.168.100.11,192.168.100.12,192.168.100.13,192.168.100.21,192.168.100.22,192.168.100.23 \
--managed-second-cluster 192.168.100.30 \
+INTEGRATION_TEST_ARGS := -cluster 2001:db8:abcd:12:0:0:0:100 \
+-managed-cluster 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:12,2001:db8:abcd:12:a:b:c:13,2001:db8:abcd:12:a:b:c:21,2001:db8:abcd:12:a:b:c:22,2001:db8:abcd:12:a:b:c:23 \
+-managed-second-cluster 2001:db8:abcd:12:a:b:c:30 \
 -user cassandra -password cassandra \
 -agent-auth-token token \
 -s3-data-dir ./testing/minio/data -s3-provider Minio -s3-endpoint $(MINIO_ENDPOINT) -s3-access-key-id $(MINIO_USER_ACCESS_KEY) -s3-secret-access-key $(MINIO_USER_SECRET_KEY)
@@ -122,7 +122,7 @@ pkg-integration-test:
 	@docker kill scylla_manager_server 2> /dev/null || true
 	@CGO_ENABLED=0 GOOS=linux go test -tags integration -c -o ./integration-test.dev $(PKG)
 	@docker run --name "scylla_manager_server" \
-		--network scylla_manager_public \
+		--network scylla_manager_public_ipv6 \
 		-v "/tmp:/tmp" \
 		-v "$(PWD)/integration-test.dev:/usr/bin/integration-test:ro" \
 		-v "$(PWD)/testing:/integration-test/testing" \
@@ -143,9 +143,17 @@ pkg-stress-test:
 start-dev-env: ## Start testing containers
 start-dev-env: .testing-up deploy-agent build-cli
 
+.PHONY: start-dev-env-ipv6
+start-dev-env-ipv6: ## Start testing containers
+start-dev-env-ipv6: .testing-up-ipv6 deploy-agent build-cli
+
 .PHONY: .testing-up
 .testing-up:
 	@make -C testing build down up
+
+.PHONY: .testing-up-ipv6
+.testing-up-ipv6:
+	@make -C testing build up-ipv6
 
 .PHONY: dev-env-status
 dev-env-status:  ## Checks status of docker containers and cluster nodes

@@ -1,0 +1,227 @@
+version: "3.7"
+
+services:
+  dc1_node_1:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:11 --alternator-address 2001:db8:abcd:12:a:b:c:11 --listen-address 2001:db8:abcd:12:a:b:c:11
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla_ipv6.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:11
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:11
+
+  dc1_node_2:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:12 --alternator-address 2001:db8:abcd:12:a:b:c:12 --listen-address 2001:db8:abcd:12:a:b:c:12
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla_ipv6.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:12
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:12
+
+
+  dc1_node_3:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:13 --alternator-address 2001:db8:abcd:12:a:b:c:13 --listen-address 2001:db8:abcd:12:a:b:c:13
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.1.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs/
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:13
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:13
+
+
+  dc2_node_1:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:21 --alternator-address 2001:db8:abcd:12:a:b:c:21 --listen-address 2001:db8:abcd:12:a:b:c:21
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:21
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:21
+
+  dc2_node_2:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:22 --alternator-address 2001:db8:abcd:12:a:b:c:22 --listen-address 2001:db8:abcd:12:a:b:c:22
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:22
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:22
+
+  dc2_node_3:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:11,2001:db8:abcd:12:a:b:c:21 --rpc-address 9001:ab8:a:12:a:b:c:23 --alternator-address 2001:db8:abcd:12:a:b:c:23 --listen-address 2001:db8:abcd:12:a:b:c:23
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-rackdc.2.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:23
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:23
+
+  second_cluster_dc1_node_1:
+    image: scylladb/scylla-agent:${SCYLLA_VERSION}
+    privileged: true
+    command: --smp 2 --memory 1G --seeds 2001:db8:abcd:12:a:b:c:30 --rpc-address 9001:ab8:a:12:a:b:c:30 --alternator-address 2001:db8:abcd:12:a:b:c:30 --listen-address 2001:db8:abcd:12:a:b:c:30
+    volumes:
+      - type: bind
+        source: ./scylla/cassandra-second-cluster.properties
+        target: /etc/scylla/cassandra-rackdc.properties
+      - type: bind
+        source: ./scylla/scylla-second-cluster.yaml
+        target: /etc/scylla/scylla.yaml
+      - type: bind
+        source: ./scylla/certs/
+        target: /etc/scylla/certs
+      - type: bind
+        source: ./scylla/cqlshrc
+        target: /root/.cassandra/cqlshrc
+    networks:
+      public_ipv6:
+        ipv6_address: 9001:ab8:a:12:a:b:c:30
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:a:b:c:30
+
+
+  scylla-manager-db:
+    image: ${SCYLLA_IMAGE}:${SCYLLA_VERSION}
+    command: --smp 1 --memory 500M --api-address 0.0.0.0 --seeds 2001:db8:abcd:12:0:0:0:100 --rpc-address 2001:db8:abcd:12:0:0:0:100 --alternator-address 2001:db8:abcd:12:0:0:0:100 --listen-address 2001:db8:abcd:12:0:0:0:100
+    ports:
+      - "9042:9042"
+      - "10000:10000"
+    networks:
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:0:0:0:100
+
+  minio:
+    image: minio/minio:${MINIO_VERSION}
+    privileged: true
+    user: ${CURRENT_UID}:${CURRENT_GID}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_REGION: ${MINIO_REGION}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_HTTP_TRACE: "/tmp/minio.log"
+    volumes:
+      - type: bind
+        source: ${MINIO_DATA_DIR}
+        target: /data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:0:0:0:99
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    volumes:
+      - type: bind
+        source: ./prometheus/prometheus.yaml
+        target: /etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      private_ipv6:
+        ipv6_address: 2001:db8:abcd:12:0:0:0:98
+
+networks:
+  private_ipv6:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 2001:db8:abcd:12:0:0:0:0/64
+          gateway: 2001:db8:abcd:12:0:0:0:1
+  public_ipv6:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 9001:ab8:a:12:0:0:0:0/64
+          gateway: 9001:ab8:a:12:0:0:0:1

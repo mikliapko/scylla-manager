@@ -17,6 +17,7 @@ import (
 	"github.com/scylladb/gocqlx/v2"
 	"github.com/scylladb/gocqlx/v2/migrate"
 	"github.com/scylladb/gocqlx/v2/qb"
+	"github.com/scylladb/scylla-manager/v3/pkg/scyllaclient"
 
 	"github.com/scylladb/scylla-manager/v3/pkg/schema/nopmigrate"
 	"github.com/scylladb/scylla-manager/v3/schema"
@@ -104,15 +105,37 @@ func CreateSessionWithoutMigration(tb testing.TB) gocqlx.Session {
 
 // CreateSessionAndDropAllKeyspaces returns a new gocqlx.Session
 // to the managed data cluster and clears all keyspaces.
-func CreateSessionAndDropAllKeyspaces(tb testing.TB, hosts []string) gocqlx.Session {
+func CreateSessionAndDropAllKeyspaces(tb testing.TB, hosts []string, client ...*scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
+	if client != nil {
+		var sessionHosts []string
+		for _, h := range hosts {
+			ni, err := client[0].NodeInfo(context.Background(), h)
+			if err != nil {
+				tb.Fatal(err)
+			}
+			sessionHosts = append(sessionHosts, ni.CQLAddr(h))
+		}
+		hosts = sessionHosts
+	}
 	return createManagedClusterSession(tb, true, hosts)
 }
 
 // CreateSession returns a new gocqlx.Session to the managed data
 // cluster without clearing it.
-func CreateSession(tb testing.TB, hosts []string) gocqlx.Session {
+func CreateSession(tb testing.TB, hosts []string, client ...*scyllaclient.Client) gocqlx.Session {
 	tb.Helper()
+	if client != nil {
+		var sessionHosts []string
+		for _, h := range hosts {
+			ni, err := client[0].NodeInfo(context.Background(), h)
+			if err != nil {
+				tb.Fatal(err)
+			}
+			sessionHosts = append(sessionHosts, ni.CQLAddr(h))
+		}
+		hosts = sessionHosts
+	}
 	return createManagedClusterSession(tb, false, hosts)
 }
 

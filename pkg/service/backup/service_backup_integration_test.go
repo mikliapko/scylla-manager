@@ -120,7 +120,7 @@ func newTestService(t *testing.T, session gocqlx.Session, client *scyllaclient.C
 			return client, nil
 		},
 		func(ctx context.Context, clusterID uuid.UUID) (gocqlx.Session, error) {
-			return CreateSession(t, client.Config().Hosts), nil
+			return CreateSession(t, client.Config().Hosts, client), nil
 		},
 		logger.Named("backup"),
 	)
@@ -360,7 +360,7 @@ func TestGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts(), h.client).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, test := range table {

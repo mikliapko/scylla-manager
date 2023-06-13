@@ -108,7 +108,7 @@ func TestRestoreGetTargetIntegration(t *testing.T) {
 		ctx     = context.Background()
 	)
 
-	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts()).Close()
+	CreateSessionAndDropAllKeyspaces(t, ManagedClusterHosts(), h.client).Close()
 	S3InitBucket(t, testBucket)
 
 	for _, tc := range testCases {

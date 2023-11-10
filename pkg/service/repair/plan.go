@@ -92,7 +92,7 @@ func newPlan(ctx context.Context, target Target, client *scyllaclient.Client) (*
 
 // UpdateIdx sets keyspace and table idx to the next not repaired table.
 // Returns false if there are no more tables to repair.
-func (p *plan) UpdateIdx() bool {
+func (p *plan) UpdateIdx() (moved, done bool) {
 	ksIdx := p.Idx
 	tabIdx := p.Keyspaces[ksIdx].Idx
 
@@ -103,13 +103,14 @@ func (p *plan) UpdateIdx() bool {
 			if !kp.IsTableRepaired(tabIdx) {
 				p.Idx = ksIdx
 				p.Keyspaces[ksIdx].Idx = tabIdx
-				return true
+				return moved, false
 			}
+			moved = true
 		}
 		tabIdx = 0
 	}
 
-	return false
+	return false, false
 }
 
 // Hosts returns all hosts taking part in repair.

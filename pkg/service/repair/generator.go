@@ -152,7 +152,7 @@ func newGenerator(ctx context.Context, target Target,
 
 	return &generator{
 		plan:        target.plan,
-		ctl:         newRowLevelRepairController(ih),
+		ctl:         newRowLevelRepairController(logger.Named("controller"), hosts, ih),
 		ms:          newMasterSelector(shards, status.HostDC(), closestDC),
 		client:      client,
 		next:        make(chan job, target.plan.MaxParallel),
@@ -168,7 +168,7 @@ func (g *generator) Run(ctx context.Context) error {
 	g.logger.Info(ctx, "Start generator")
 	running := true
 
-	g.generateJobs()
+	g.generateJobs(ctx)
 	if g.shouldExit() {
 		running = false
 	}
@@ -182,7 +182,7 @@ func (g *generator) Run(ctx context.Context) error {
 			running = false
 		case r := <-g.result:
 			g.processResult(ctx, r)
-			g.generateJobs()
+			g.generateJobs(ctx)
 			if g.shouldExit() {
 				running = false
 			}
@@ -220,12 +220,12 @@ func (g *generator) processResult(ctx context.Context, r jobResult) {
 		g.logger.Info(ctx, "Progress", "percent", percent, "count", g.count, "success", g.success, "failed", g.failed)
 		g.lastPercent = percent
 	}
-	g.ctl.Unblock(r.replicaSet)
+	g.ctl.Unblock(ctx, r.replicaSet)
 }
 
-func (g *generator) generateJobs() {
+func (g *generator) generateJobs(ctx context.Context) {
 	for {
-		j, ok := g.newJob()
+		j, ok := g.newJob(ctx)
 		if !ok {
 			return
 		}
@@ -239,8 +239,9 @@ func (g *generator) generateJobs() {
 }
 
 // newJob tries to return job passing controller restrictions.
-func (g *generator) newJob() (job, bool) {
-	if ok := g.plan.UpdateIdx(); !ok {
+func (g *generator) newJob(ctx context.Context) (job, bool) {
+	moved, done := g.plan.UpdateIdx()
+	if done {
 		g.stopGenerating()
 	}
 	if !g.shouldGenerate() {
@@ -251,13 +252,19 @@ func (g *generator) newJob() (job, bool) {
 	kp := g.plan.Keyspaces[ksIdx]
 	tabIdx := kp.Idx
 	tp := kp.Tables[tabIdx]
+	if moved {
+		g.logger.Info(ctx, "Moved to next table",
+			"keyspace", kp.Keyspace,
+			"table", tp.Table,
+		)
+	}
 
 	for repIdx, rep := range kp.Replicas {
 		if kp.IsReplicaMarked(repIdx, tabIdx) {
 			continue
 		}
 
-		if ranges := g.ctl.TryBlock(rep.ReplicaSet); ranges > 0 {
+		if ranges := g.ctl.TryBlock(ctx, rep.ReplicaSet); ranges > 0 {
 			return job{
 				keyspace:   kp.Keyspace,
 				table:      tp.Table,

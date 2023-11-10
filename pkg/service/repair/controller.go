@@ -2,13 +2,19 @@
 
 package repair
 
-import "math"
+import (
+	"context"
+	"fmt"
+	"math"
+
+	"github.com/scylladb/go-log"
+)
 
 // controller informs generator about the amount of ranges that can be repaired
 // on a given replica set. Returns 0 ranges when repair shouldn't be scheduled.
 type controller interface {
-	TryBlock(replicaSet []string) (ranges int)
-	Unblock(replicaSet []string)
+	TryBlock(ctx context.Context, replicaSet []string) (ranges int)
+	Unblock(ctx context.Context, replicaSet []string)
 	Busy() bool
 }
 
@@ -17,26 +23,33 @@ type controller interface {
 // at most one job running on every node at any time.
 // It always returns either 0 or '--intensity' ranges.
 type rowLevelRepairController struct {
+	logger    log.Logger
 	intensity *intensityHandler
 
-	jobsCnt  int            // Total amount of repair jobs in the cluster
-	nodeJobs map[string]int // Amount of repair jobs on a given node
+	jobsCnt        int            // Total amount of repair jobs in the cluster
+	jobsPerNodeCnt int            // Sum over repair jobs on each node
+	nodeJobs       map[string]int // Amount of repair jobs on a given node
 }
 
 var _ controller = &rowLevelRepairController{}
 
-func newRowLevelRepairController(ih *intensityHandler) *rowLevelRepairController {
+func newRowLevelRepairController(logger log.Logger, nodes []string, ih *intensityHandler) *rowLevelRepairController {
+	m := make(map[string]int, len(nodes))
+	for _, n := range nodes {
+		m[n] = 0
+	}
 	return &rowLevelRepairController{
+		logger:    logger,
 		intensity: ih,
-		nodeJobs:  make(map[string]int),
+		nodeJobs:  m,
 	}
 }
 
-func (c *rowLevelRepairController) TryBlock(replicaSet []string) int {
+func (c *rowLevelRepairController) TryBlock(ctx context.Context, replicaSet []string) int {
 	if !c.shouldBlock(replicaSet) {
 		return 0
 	}
-	c.block(replicaSet)
+	c.block(ctx, replicaSet)
 
 	i := c.intensity.Intensity()
 	if max := c.replicaMaxRanges(replicaSet); i == maxIntensity || max < i {
@@ -66,11 +79,17 @@ func (c *rowLevelRepairController) shouldBlock(replicaSet []string) bool {
 	return true
 }
 
-func (c *rowLevelRepairController) block(replicaSet []string) {
+func (c *rowLevelRepairController) block(ctx context.Context, replicaSet []string) {
 	c.jobsCnt++
 	for _, r := range replicaSet {
 		c.nodeJobs[r]++
+		c.jobsPerNodeCnt++
 	}
+	c.logger.Info(ctx, "Cluster utilization",
+		"jobs", c.jobsCnt,
+		"jobs per node", c.jobsPerNodeCnt,
+		"percentage", fmt.Sprintf("%.2f", float64(c.jobsPerNodeCnt)/float64(len(c.nodeJobs))*100),
+	)
 }
 
 func (c *rowLevelRepairController) replicaMaxRanges(replicaSet []string) int {
@@ -84,11 +103,17 @@ func (c *rowLevelRepairController) replicaMaxRanges(replicaSet []string) int {
 	return min
 }
 
-func (c *rowLevelRepairController) Unblock(replicaSet []string) {
+func (c *rowLevelRepairController) Unblock(ctx context.Context, replicaSet []string) {
 	c.jobsCnt--
 	for _, r := range replicaSet {
 		c.nodeJobs[r]--
+		c.jobsPerNodeCnt--
 	}
+	c.logger.Info(ctx, "Cluster utilization",
+		"jobs", c.jobsCnt,
+		"jobs per node", c.jobsPerNodeCnt,
+		"percentage", fmt.Sprintf("%.2f", float64(c.jobsPerNodeCnt)/float64(len(c.nodeJobs))*100),
+	)
 }
 
 func (c *rowLevelRepairController) Busy() bool {

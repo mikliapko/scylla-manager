@@ -38,19 +38,22 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		}
 	}
 
+	ctx := context.Background()
+	nodes := []string{node1, node2, node3, node4, node5, node6}
+
 	t.Run("make sure TryBlock() will deny if replicaset is already blocked", func(t *testing.T) {
 		replicaSet := []string{node1, node2}
-		c := newRowLevelRepairController(defaultIntensityHandler())
+		c := newRowLevelRepairController(log.Logger{}, nodes, defaultIntensityHandler())
 
-		if rangesCount := c.TryBlock(replicaSet); rangesCount == 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount == 0 {
 			t.Fatal("expected to return ranges to repair, but got 0")
 		}
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount != 0 {
 			t.Fatalf("expected to return 0 to repair, but got {%d}", rangesCount)
 		}
 
-		c.Unblock(replicaSet)
-		if rangesCount := c.TryBlock(replicaSet); rangesCount == 0 {
+		c.Unblock(ctx, replicaSet)
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount == 0 {
 			t.Fatal("expected to return ranges to repair, but got 0")
 		}
 	})
@@ -63,12 +66,12 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		replicaSet := []string{node1, node2}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
-		c := newRowLevelRepairController(ih)
+		c := newRowLevelRepairController(log.Logger{}, nodes, ih)
 
 		if err := ih.SetIntensity(context.Background(), expectedNrOfRanges); err != nil {
 			t.Fatalf("unexpected error = {%v}", err)
 		}
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
 	})
@@ -81,12 +84,12 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		replicaSet := []string{node1, node2}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
-		c := newRowLevelRepairController(ih)
+		c := newRowLevelRepairController(log.Logger{}, nodes, ih)
 
 		if err := ih.SetIntensity(context.Background(), float64(expectedNrOfRanges)); err != nil {
 			t.Fatalf("unexpected error = {%v}", err)
 		}
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != expectedNrOfRanges {
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount != expectedNrOfRanges {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", expectedNrOfRanges, rangesCount)
 		}
 	})
@@ -100,12 +103,12 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		replicaSet := []string{node1, node2, node6}
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
-		c := newRowLevelRepairController(ih)
+		c := newRowLevelRepairController(log.Logger{}, nodes, ih)
 
 		if err := ih.SetIntensity(context.Background(), intensity); err != nil {
 			t.Fatalf("unexpected error = {%v}", err)
 		}
-		if rangesCount := c.TryBlock(replicaSet); rangesCount != minRangesInParallel {
+		if rangesCount := c.TryBlock(ctx, replicaSet); rangesCount != minRangesInParallel {
 			t.Fatalf("expected to return {%d} ranges to repair, but got {%d}", minRangesInParallel, rangesCount)
 		}
 	})
@@ -116,15 +119,15 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		maxParallel := 10
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
-		c := newRowLevelRepairController(ih)
+		c := newRowLevelRepairController(log.Logger{}, nodes, ih)
 
 		if err := ih.SetParallel(context.Background(), 1); err != nil {
 			t.Fatalf("unexpected error {%v}", err)
 		}
-		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet1); rangesCount == 0 {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet2); rangesCount != 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet2); rangesCount != 0 {
 			t.Fatal("expected to deny, but was let in")
 		}
 	})
@@ -136,15 +139,15 @@ func TestRowLevelRepairController_TryBlock(t *testing.T) {
 		maxParallel := 2
 		ih := defaultIntensityHandler()
 		ih.maxParallel = maxParallel
-		c := newRowLevelRepairController(ih)
+		c := newRowLevelRepairController(log.Logger{}, nodes, ih)
 
-		if rangesCount := c.TryBlock(replicaSet1); rangesCount == 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet1); rangesCount == 0 {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet2); rangesCount == 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet2); rangesCount == 0 {
 			t.Fatal("expected to let in, but was denied")
 		}
-		if rangesCount := c.TryBlock(replicaSet3); rangesCount != 0 {
+		if rangesCount := c.TryBlock(ctx, replicaSet3); rangesCount != 0 {
 			t.Fatal("expected to deny, but was let in")
 		}
 	})
